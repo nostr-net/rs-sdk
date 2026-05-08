@@ -9,7 +9,7 @@ readme = "README.md"
 repository = "https://github.com/ContextVM/rs-sdk"
 homepage = "https://contextvm.org"
 documentation = "https://docs.rs/contextvm-sdk"
-keywords = ["nostr", "mcp", "model-context-protocol", "decentralized", "ai"]
+keywords = ["nostr", "mcp", "modelcontextprotocol", "decentralized", "ai"]
 categories = ["network-programming", "api-bindings", "asynchronous"]
 
 [dependencies]
