@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 //! # ContextVM SDK for Rust
 //!
 //! A complete Rust implementation of the [ContextVM protocol](https://contextvm.org),
@@ -36,36 +37,56 @@
 //! use contextvm_sdk::signer;
 //! ```
 
+/// Core types, constants, serializers, and validation
 pub mod core;
+/// Server and capability discovery on the Nostr network
 pub mod discovery;
+/// NIP-44 encryption and NIP-59 gift wrapping
 pub mod encryption;
+/// Gateway bridging a local MCP server to Nostr
 pub mod gateway;
+/// Proxy connecting to a remote MCP server via Nostr
 pub mod proxy;
+/// Nostr relay pool management
 pub mod relay;
+/// Nostr signer utilities and key management
 pub mod signer;
+/// Client and server MCP-over-Nostr transports
 pub mod transport;
 
+/// rmcp Worker integration for ContextVM transports
 #[cfg(feature = "rmcp")]
 pub mod rmcp_transport;
-// Re-export commonly used types
+// ── Core types and error handling ────────────────────────────────────
 pub use core::error::{Error, Result};
 pub use core::types::{
     CapabilityExclusion, ClientSession, EncryptionMode, GiftWrapMode, JsonRpcError,
     JsonRpcErrorResponse, JsonRpcMessage, JsonRpcNotification, JsonRpcRequest, JsonRpcResponse,
     ServerInfo,
 };
+
+// ── Discovery ────────────────────────────────────────────────────────
 pub use discovery::ServerAnnouncement;
+
+// ── Relay pool ───────────────────────────────────────────────────────
 #[cfg(any(test, feature = "test-utils"))]
 pub use relay::mock::MockRelayPool;
 pub use relay::{RelayPool, RelayPoolTrait};
+
+// ── Transport (client) ──────────────────────────────────────────────
 pub use transport::client::{
     ClientCorrelationStore, NostrClientTransport, NostrClientTransportConfig,
 };
+
+// ── Transport (discovery tags) ──────────────────────────────────────
 pub use transport::discovery_tags::{DiscoveredPeerCapabilities, PeerCapabilities};
+
+// ── Transport (server) ──────────────────────────────────────────────
 pub use transport::server::{
     IncomingRequest, NostrServerTransport, NostrServerTransportConfig, RouteEntry,
     ServerEventRouteStore, SessionSnapshot, SessionStore,
 };
 
+// ── rmcp re-export ──────────────────────────────────────────────────
 #[cfg(feature = "rmcp")]
 pub use rmcp;

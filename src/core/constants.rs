@@ -106,6 +106,7 @@ pub const UNENCRYPTED_KINDS: &[u16] = &[
     PROMPTS_LIST_KIND,
 ];
 
+/// Return the latest MCP protocol version string
 #[cfg(feature = "rmcp")]
 pub fn mcp_protocol_version() -> &'static str {
     use std::sync::OnceLock;
@@ -115,6 +116,7 @@ pub fn mcp_protocol_version() -> &'static str {
         .as_str()
 }
 
+/// Return the latest MCP protocol version string
 #[cfg(not(feature = "rmcp"))]
 pub const fn mcp_protocol_version() -> &'static str {
     "2025-11-25"

@@ -24,11 +24,10 @@ pub enum EncryptionMode {
     Disabled,
 }
 
-// Gift-wrap mode (CEP-19)
-
-// Gift-wrap policy for encrypted transport communication (CEP-19).
-// Controls whether encrypted messages use persistent gift wraps (kind `1059`),
-// ephemeral gift wraps (kind `21059`), or adapt based on peer support.
+/// Gift-wrap policy for encrypted transport communication (CEP-19)
+///
+/// Controls whether encrypted messages use persistent gift wraps (kind `1059`),
+/// ephemeral gift wraps (kind `21059`), or adapt based on peer support.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum GiftWrapMode {

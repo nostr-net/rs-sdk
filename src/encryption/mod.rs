@@ -37,8 +37,7 @@ where
         .map_err(|e| Error::Decryption(e.to_string()))
 }
 
-// Decrypt a single-layer NIP-44 gift wrap (kind 1059).
-
+/// Decrypt a single-layer NIP-44 gift wrap (kind 1059)
 pub async fn decrypt_gift_wrap_single_layer<T>(signer: &T, event: &Event) -> Result<String>
 where
     T: NostrSigner,
@@ -47,8 +46,7 @@ where
     decrypt_nip44(signer, &sender_pubkey, &event.content).await
 }
 
-// Create a single-layer NIP-44 gift wrap (kind 1059).
-
+/// Create a single-layer NIP-44 gift wrap (kind 1059)
 pub async fn gift_wrap_single_layer<T>(
     _signer: &T,
     recipient: &PublicKey,

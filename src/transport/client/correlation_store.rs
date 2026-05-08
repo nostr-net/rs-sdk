@@ -36,6 +36,7 @@ impl Default for ClientCorrelationStore {
 }
 
 impl ClientCorrelationStore {
+    /// Create a new store with the default capacity
     pub fn new() -> Self {
         Self::with_max_pending(DEFAULT_LRU_SIZE)
     }
@@ -76,6 +77,7 @@ impl ClientCorrelationStore {
             .is_some_and(|r| r.is_initialize)
     }
 
+    /// Check whether a pending request exists for the given event ID
     pub async fn contains(&self, event_id: &str) -> bool {
         self.pending_requests.read().await.contains(event_id)
     }
@@ -118,6 +120,7 @@ impl ClientCorrelationStore {
         count
     }
 
+    /// Remove all pending requests from the store
     pub async fn clear(&self) {
         self.pending_requests.write().await.clear();
     }
