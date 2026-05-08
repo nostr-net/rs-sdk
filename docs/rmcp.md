@@ -8,7 +8,7 @@ The Rust SDK exposes that integration behind the `rmcp` feature and re-exports t
 
 Use `rmcp` to define your server or client behavior, then attach ContextVM transports.
 
-That mirrors the transport-agnostic `rmcp` model, especially `ServiceExt`, `serve_server()`, and `serve_client()`.
+That mirrors the transport-agnostic `rmcp` model, especially `ServiceExt` and the standard `handler.serve(transport)` pattern.
 
 The native entry points in this SDK are therefore:
 
@@ -19,11 +19,11 @@ For that workflow, use the native server and native client guides in this direct
 
 ## Server-side integration
 
-Use `serve_handler()` to serve an `rmcp` server handler directly over ContextVM.
+Use the associated function `NostrMCPGateway::serve_handler()` to serve an `rmcp` server handler directly over ContextVM.
 
 ## Client-side integration
 
-Use `serve_client_handler()` to connect an `rmcp` client handler through the ContextVM client worker.
+Use the associated function `NostrMCPProxy::serve_client_handler()` to connect an `rmcp` client handler through the ContextVM client worker.
 
 ## Why this still exists as a separate page
 

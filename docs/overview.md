@@ -27,7 +27,7 @@ Most users should start with one of these entry points:
 | Expose an already-existing MCP server on Nostr | `NostrMCPGateway` |
 | Connect to a remote ContextVM server with a simpler bridge | `NostrMCPProxy` |
 | Discover public servers and capabilities | `discover_servers()` and related helpers |
-| Work directly with the optional bridge layer | `serve_handler()` or `serve_client_handler()` |
+| Work directly with the optional bridge layer | `NostrMCPGateway::serve_handler()` or `NostrMCPProxy::serve_client_handler()` |
 
 ## Architecture
 
@@ -58,7 +58,7 @@ ContextVM keeps MCP semantics intact and uses Nostr only as the transport envelo
 
 - `EncryptionMode`: `Optional`, `Required`, `Disabled`
 - `GiftWrapMode`: `Optional`, `Ephemeral`, `Persistent`
-- `ServerInfo`: announcement metadata
+- `contextvm_sdk::ServerInfo`: announcement metadata
 - `CapabilityExclusion`: allowlist bypass rules for specific methods or capabilities
 
 ## Typical workflows

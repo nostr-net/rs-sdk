@@ -43,11 +43,9 @@ async fn main() -> contextvm_sdk::Result<()> {
     let keys = signer::from_sk("<hex-or-nsec-private-key>")?;
 
     let config = ProxyConfig {
-        nostr_config: NostrClientTransportConfig {
-            relay_urls: vec!["wss://relay.damus.io".to_string()],
-            server_pubkey: "<server-hex-pubkey>".to_string(),
-            ..Default::default()
-        },
+        nostr_config: NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://relay.damus.io".to_string()])
+            .with_server_pubkey("<server-hex-pubkey>"),
     };
 
     let mut proxy = NostrMCPProxy::new(keys, config).await?;
@@ -111,6 +109,6 @@ Prefer the native client transport path when:
 
 ## rmcp path
 
-If you are building on `rmcp`, use `serve_client_handler()` instead of manually sending and receiving raw `JsonRpcMessage` values.
+If you are building on `rmcp`, use the associated function `NostrMCPProxy::serve_client_handler()` instead of manually sending and receiving raw `JsonRpcMessage` values.
 
 That said, the preferred native architecture is still `rmcp` client first and ContextVM transport second.

@@ -20,6 +20,7 @@ For most native Rust applications, the primary entry points are `NostrServerTran
 - Native server guide: server setup over Nostr
 - Native client guide: client setup over Nostr
 - Encryption guide: plaintext, encrypted, and gift-wrap behavior
+- Stateless mode guide: client-side initialize emulation and when to use it
 - Discovery guide: public discovery helpers and event kinds
 
 ### Bridging existing MCP applications
@@ -31,6 +32,7 @@ For most native Rust applications, the primary entry points are `NostrServerTran
 
 - RMCP integration guide: how the optional `rmcp` integration layer fits in
 - Transport guide: lower-level transport behavior and direct usage
+- Transport modes guide: encryption mode, gift-wrap mode, and stateless mode as one reference
 
 ## Documentation goals
 

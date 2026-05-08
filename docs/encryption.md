@@ -18,7 +18,7 @@ These semantics are not only conceptual; they are also exercised by the transpor
 
 `GiftWrapMode` controls which outer encrypted event kind is used:
 
-- `Optional`: accept and prefer either supported mode
+- `Optional`: accept both modes and default to persistent wrapping until ephemeral support is learned from the peer
 - `Ephemeral`: use kind `21059`
 - `Persistent`: use kind `1059`
 
@@ -58,13 +58,11 @@ This is covered by the deduplication and encrypted transport integration tests.
 use contextvm_sdk::core::types::{EncryptionMode, GiftWrapMode};
 use contextvm_sdk::transport::client::NostrClientTransportConfig;
 
-let config = NostrClientTransportConfig {
-    relay_urls: vec!["wss://relay.damus.io".to_string()],
-    server_pubkey: "<server-hex-pubkey>".to_string(),
-    encryption_mode: EncryptionMode::Optional,
-    gift_wrap_mode: GiftWrapMode::Optional,
-    ..Default::default()
-};
+let config = NostrClientTransportConfig::default()
+    .with_relay_urls(vec!["wss://relay.damus.io".to_string()])
+    .with_server_pubkey("<server-hex-pubkey>")
+    .with_encryption_mode(EncryptionMode::Optional)
+    .with_gift_wrap_mode(GiftWrapMode::Optional);
 ```
 
 ## Discovery tags

@@ -35,17 +35,19 @@ This is the right choice for long-lived servers, announced servers, and deployme
 use contextvm_sdk::transport::server::{
     NostrServerTransport, NostrServerTransportConfig,
 };
-use contextvm_sdk::{EncryptionMode, GiftWrapMode};
+use contextvm_sdk::{signer, EncryptionMode, GiftWrapMode, ServerInfo};
 use rmcp::{
     ServerHandler, ServiceExt,
-    handler::server::wrapper::Parameters,
+    handler::server::{router::tool::ToolRouter, wrapper::Parameters},
     model::*,
     schemars, tool, tool_handler, tool_router,
 };
 
+const RELAY_URL: &str = "wss://relay.contextvm.org";
+
 #[derive(Clone)]
 struct DemoServer {
-    tool_router: rmcp::handler::server::router::tool::ToolRouter<Self>,
+    tool_router: ToolRouter<Self>,
 }
 
 impl DemoServer {
@@ -68,45 +70,66 @@ impl DemoServer {
         &self,
         Parameters(EchoParams { message }): Parameters<EchoParams>,
     ) -> Result<CallToolResult, ErrorData> {
-        Ok(CallToolResult::success(vec![Content::text(message)]))
+        Ok(CallToolResult::success(vec![Content::text(format!(
+            "Echo: {message}"
+        ))]))
     }
 }
 
 #[tool_handler]
 impl ServerHandler for DemoServer {
-    fn get_info(&self) -> ServerInfo {
-        ServerInfo {
+    fn get_info(&self) -> rmcp::model::ServerInfo {
+        rmcp::model::ServerInfo {
             protocol_version: ProtocolVersion::LATEST,
             capabilities: ServerCapabilities::builder().enable_tools().build(),
-            server_info: Implementation::new("demo-server", "0.1.0"),
-            instructions: Some("Try the echo tool".to_string()),
+            server_info: Implementation::new("contextvm-native-echo", "0.1.0")
+                .with_title("ContextVM Native Echo Server")
+                .with_description("Native rmcp echo server over ContextVM/Nostr"),
+            instructions: Some("Call the echo tool with a message string".to_string()),
         }
     }
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let signer = contextvm_sdk::signer::generate();
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::from_default_env()
+                .add_directive("contextvm_sdk=info".parse()?)
+                .add_directive("rmcp=warn".parse()?),
+        )
+        .init();
+
+    let signer = signer::generate();
+    let pubkey = signer.public_key().to_hex();
+
+    println!("Native ContextVM echo server starting");
+    println!("Relay: {RELAY_URL}");
+    println!("Server pubkey: {pubkey}");
 
     let transport = NostrServerTransport::new(
         signer,
-        NostrServerTransportConfig {
-            relay_urls: vec!["wss://relay.primal.net".to_string()],
-            is_announced_server: true,
-            encryption_mode: EncryptionMode::Optional,
-            gift_wrap_mode: GiftWrapMode::Optional,
-            ..Default::default()
-        },
+        NostrServerTransportConfig::default()
+            .with_relay_urls(vec![RELAY_URL.to_string()])
+            .with_encryption_mode(EncryptionMode::Optional)
+            .with_gift_wrap_mode(GiftWrapMode::Optional)
+            .with_announced_server(false)
+            .with_server_info(
+                ServerInfo::default()
+                    .with_name("contextvm-native-echo".to_string())
+                    .with_about("Native rmcp echo server example".to_string()),
+            ),
     )
     .await?;
 
     let service = DemoServer::new().serve(transport).await?;
+    println!("Server ready. Press Ctrl+C to stop.");
     service.waiting().await?;
     Ok(())
 }
 ```
 
-This follows the same native service pattern as the repository integration example, but replaces the local duplex transport with `NostrServerTransport`.
+This follows the same flow as [`examples/native_echo_server.rs`](examples/native_echo_server.rs:1), while keeping the snippet compatible for external crate users by avoiding struct literals on `#[non_exhaustive]` types.
 
 ## What the transport adds
 
@@ -139,7 +162,7 @@ Use the gateway guide when you already have a request loop or existing local MCP
 
 ## Behavioral notes
 
-- The `rmcp` server handshake follows the normal `serve_server()` flow.
+- The `rmcp` server handshake follows `ServiceExt::serve()` on the server handler.
 - `rmcp` accepts pre-init ping and enters the main loop immediately after initialization completes.
 - ContextVM response routing depends on request event ids.
 - Encryption mirroring and announcement behavior are covered by the integration tests.

@@ -33,16 +33,14 @@ async fn main() -> contextvm_sdk::Result<()> {
     let keys = signer::generate();
 
     let config = GatewayConfig {
-        nostr_config: NostrServerTransportConfig {
-            relay_urls: vec!["wss://relay.damus.io".to_string()],
-            server_info: Some(ServerInfo {
-                name: Some("Echo Server".to_string()),
-                about: Some("A simple ContextVM server".to_string()),
-                ..Default::default()
-            }),
-            is_announced_server: true,
-            ..Default::default()
-        },
+        nostr_config: NostrServerTransportConfig::default()
+            .with_relay_urls(vec!["wss://relay.damus.io".to_string()])
+            .with_server_info(
+                ServerInfo::default()
+                    .with_name("Echo Server".to_string())
+                    .with_about("A simple ContextVM server".to_string()),
+            )
+            .with_announced_server(true),
     };
 
     let mut gateway = NostrMCPGateway::new(keys, config).await?;
@@ -124,6 +122,6 @@ The main operational knobs live on `NostrServerTransportConfig`:
 
 ## rmcp path
 
-If your server already uses `rmcp`, the gateway also exposes `serve_handler()` so you can attach a handler directly without manually running the request loop.
+If your server already uses `rmcp`, the gateway also exposes the associated function `NostrMCPGateway::serve_handler()` so you can attach a handler directly without manually running the request loop.
 
 That said, the preferred native architecture is still `rmcp` service first and ContextVM transport second.

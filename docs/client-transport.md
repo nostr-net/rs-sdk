@@ -37,61 +37,96 @@ Use `generate()` only when you explicitly want a new random identity for a short
 ## Example
 
 ```rust
+use anyhow::Context;
 use contextvm_sdk::transport::client::{
     NostrClientTransport, NostrClientTransportConfig,
 };
-use contextvm_sdk::{EncryptionMode, GiftWrapMode};
+use contextvm_sdk::{signer, EncryptionMode, GiftWrapMode};
 use rmcp::{
+    model::{CallToolRequestParams, CallToolResult},
     ClientHandler, ServiceExt,
-    model::{CallToolRequestParams, ClientCapabilities, ClientInfo, Implementation},
 };
+
+const RELAY_URL: &str = "wss://relay.contextvm.org";
 
 #[derive(Clone, Default)]
 struct DemoClient;
 
-impl ClientHandler for DemoClient {
-    fn get_info(&self) -> ClientInfo {
-        ClientInfo::new(
-            ClientCapabilities::default(),
-            Implementation::new("demo-client", "0.1.0"),
-        )
-    }
-}
+impl ClientHandler for DemoClient {}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let signer = contextvm_sdk::signer::generate();
+    let server_pubkey = std::env::args()
+        .nth(1)
+        .context("Usage: native_echo_client <server_pubkey_hex>")?;
+
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::from_default_env()
+                .add_directive("contextvm_sdk=info".parse()?)
+                .add_directive("rmcp=warn".parse()?),
+        )
+        .init();
+
+    let signer = signer::generate();
+
+    println!("Native ContextVM echo client starting");
+    println!("Relay: {RELAY_URL}");
+    println!("Client pubkey: {}", signer.public_key().to_hex());
+    println!("Target server pubkey: {server_pubkey}");
 
     let transport = NostrClientTransport::new(
         signer,
-        NostrClientTransportConfig {
-            relay_urls: vec!["wss://relay.primal.net".to_string()],
-            server_pubkey: "<server-hex-pubkey>".to_string(),
-            encryption_mode: EncryptionMode::Optional,
-            gift_wrap_mode: GiftWrapMode::Optional,
-            ..Default::default()
-        },
+        NostrClientTransportConfig::default()
+            .with_relay_urls(vec![RELAY_URL.to_string()])
+            .with_server_pubkey(server_pubkey)
+            .with_encryption_mode(EncryptionMode::Optional)
+            .with_gift_wrap_mode(GiftWrapMode::Optional),
     )
     .await?;
 
     let client = DemoClient.serve(transport).await?;
 
-    let server_info = client.peer_info();
-    println!("Connected to server: {server_info:#?}");
+    let peer_info = client
+        .peer_info()
+        .expect("server did not provide peer info after initialize");
+    println!("Connected to: {:?}", peer_info.server_info.name);
 
-    let tools = client.list_tools(Default::default()).await?;
-    println!("Available tools: {tools:#?}");
+    let tools = client.list_all_tools().await?;
+    println!("Discovered {} tool(s):", tools.len());
+    for tool in &tools {
+        println!("- {}", tool.name);
+    }
 
     let result = client
-        .call_tool(
-            CallToolRequestParams::new("echo")
-                .with_arguments(serde_json::json!({ "message": "hello" }).as_object().cloned().unwrap()),
-        )
+        .call_tool(CallToolRequestParams {
+            name: "echo".into(),
+            arguments: serde_json::from_value(serde_json::json!({
+                "message": "hello from native contextvm client"
+            }))
+            .ok(),
+            meta: None,
+            task: None,
+        })
         .await?;
 
-    println!("Tool result: {result:#?}");
+    println!("Echo result: {}", first_text(&result));
     client.cancel().await?;
     Ok(())
+}
+
+fn first_text(result: &CallToolResult) -> String {
+    result
+        .content
+        .iter()
+        .find_map(|content| {
+            if let rmcp::model::RawContent::Text(text) = &content.raw {
+                Some(text.text.clone())
+            } else {
+                None
+            }
+        })
+        .unwrap_or_default()
 }
 ```
 
@@ -127,7 +162,7 @@ Use the proxy guide when you want a simpler message-oriented bridge and do not w
 
 ## Behavioral notes
 
-- The client-side `rmcp` handshake is driven by the normal `serve_client()` flow.
+- The client-side `rmcp` handshake is driven by `ServiceExt::serve()` on the client handler.
 - The initialize request is sent automatically as part of the running client startup sequence.
 - Stateless initialization behavior is covered by the conformance tests.
 - Capability learning and gift-wrap handling happen inside the client transport implementation.

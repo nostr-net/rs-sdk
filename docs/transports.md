@@ -43,11 +43,9 @@ async fn main() -> contextvm_sdk::Result<()> {
     let keys = signer::generate();
     let mut transport = NostrClientTransport::new(
         keys,
-        NostrClientTransportConfig {
-            relay_urls: vec!["wss://relay.damus.io".to_string()],
-            server_pubkey: "<server-hex-pubkey>".to_string(),
-            ..Default::default()
-        },
+        NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://relay.damus.io".to_string()])
+            .with_server_pubkey("<server-hex-pubkey>"),
     )
     .await?;
 
@@ -86,10 +84,7 @@ async fn main() -> contextvm_sdk::Result<()> {
     let keys = signer::generate();
     let mut transport = NostrServerTransport::new(
         keys,
-        NostrServerTransportConfig {
-            is_announced_server: true,
-            ..Default::default()
-        },
+        NostrServerTransportConfig::default().with_announced_server(true),
     )
     .await?;
 
