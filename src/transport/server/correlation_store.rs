@@ -84,6 +84,7 @@ impl Default for ServerEventRouteStore {
 }
 
 impl ServerEventRouteStore {
+    /// Create a new store with the default capacity
     pub fn new() -> Self {
         Self {
             inner: Arc::new(RwLock::new(Inner::new(DEFAULT_LRU_SIZE))),
@@ -246,6 +247,7 @@ impl ServerEventRouteStore {
         expired_keys
     }
 
+    /// Remove all route entries and secondary indexes
     pub async fn clear(&self) {
         let mut inner = self.inner.write().await;
         inner.routes.clear();

@@ -227,9 +227,13 @@ impl SessionStore {
 /// through the async API boundary).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SessionSnapshot {
+    /// Whether the MCP `initialize` handshake has completed
     pub is_initialized: bool,
+    /// Whether the session is using NIP-44 encrypted transport
     pub is_encrypted: bool,
+    /// Whether common discovery tags have been sent for this session
     pub has_sent_common_tags: bool,
+    /// Whether the peer advertised support for ephemeral gift wraps (CEP-19)
     pub supports_ephemeral_gift_wrap: bool,
 }
 
