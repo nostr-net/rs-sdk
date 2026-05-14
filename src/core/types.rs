@@ -110,6 +110,79 @@ impl ServerInfo {
     }
 }
 
+// ── Profile metadata ────────────────────────────────────────────────
+
+/// Nostr profile metadata for server identity (NIP-01 kind 0 / CEP-23).
+///
+/// Opt-in profile that servers can publish so clients see a human-friendly
+/// identity on the Nostr network. Serialized as the content of a kind 0 event.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[non_exhaustive]
+pub struct ProfileMetadata {
+    /// Display name.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Short description or bio.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub about: Option<String>,
+    /// Avatar / profile picture URL.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub picture: Option<String>,
+    /// Banner image URL.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub banner: Option<String>,
+    /// Website URL.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub website: Option<String>,
+    /// NIP-05 verification identifier (e.g. `user@example.com`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub nip05: Option<String>,
+    /// Lightning address for payments (LUD-16).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lud16: Option<String>,
+    /// Arbitrary additional fields preserved across round-trips.
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
+}
+
+impl ProfileMetadata {
+    /// Set the display name.
+    pub fn with_name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+    /// Set the description / bio.
+    pub fn with_about(mut self, about: impl Into<String>) -> Self {
+        self.about = Some(about.into());
+        self
+    }
+    /// Set the avatar URL.
+    pub fn with_picture(mut self, picture: impl Into<String>) -> Self {
+        self.picture = Some(picture.into());
+        self
+    }
+    /// Set the banner image URL.
+    pub fn with_banner(mut self, banner: impl Into<String>) -> Self {
+        self.banner = Some(banner.into());
+        self
+    }
+    /// Set the website URL.
+    pub fn with_website(mut self, website: impl Into<String>) -> Self {
+        self.website = Some(website.into());
+        self
+    }
+    /// Set the NIP-05 verification identifier.
+    pub fn with_nip05(mut self, nip05: impl Into<String>) -> Self {
+        self.nip05 = Some(nip05.into());
+        self
+    }
+    /// Set the Lightning address (LUD-16).
+    pub fn with_lud16(mut self, lud16: impl Into<String>) -> Self {
+        self.lud16 = Some(lud16.into());
+        self
+    }
+}
+
 // ── Client session ──────────────────────────────────────────────────
 
 /// Client session state tracked by the server transport.
@@ -618,5 +691,68 @@ mod tests {
         thread::sleep(Duration::from_millis(10));
         session.update_activity();
         assert!(session.last_activity > first);
+    }
+
+    #[test]
+    fn test_profile_metadata_serde_roundtrip() {
+        let meta = ProfileMetadata {
+            name: Some("My Server".to_string()),
+            about: Some("Does things".to_string()),
+            picture: Some("https://example.com/pic.png".to_string()),
+            banner: Some("https://example.com/banner.png".to_string()),
+            website: Some("https://example.com".to_string()),
+            nip05: Some("server@example.com".to_string()),
+            lud16: Some("server@getalby.com".to_string()),
+            extra: HashMap::new(),
+        };
+        let json_str = serde_json::to_string(&meta).unwrap();
+        let parsed: ProfileMetadata = serde_json::from_str(&json_str).unwrap();
+        assert_eq!(parsed.name, meta.name);
+        assert_eq!(parsed.about, meta.about);
+        assert_eq!(parsed.picture, meta.picture);
+        assert_eq!(parsed.banner, meta.banner);
+        assert_eq!(parsed.website, meta.website);
+        assert_eq!(parsed.nip05, meta.nip05);
+        assert_eq!(parsed.lud16, meta.lud16);
+    }
+
+    #[test]
+    fn test_profile_metadata_default_serializes_empty() {
+        let meta = ProfileMetadata::default();
+        let json_str = serde_json::to_string(&meta).unwrap();
+        assert_eq!(json_str, "{}");
+    }
+
+    #[test]
+    fn test_profile_metadata_preserves_custom_fields() {
+        let json_str = r#"{"name":"Srv","custom_flag":true,"rank":42}"#;
+        let parsed: ProfileMetadata = serde_json::from_str(json_str).unwrap();
+        assert_eq!(parsed.name, Some("Srv".to_string()));
+        assert_eq!(parsed.extra.get("custom_flag"), Some(&json!(true)));
+        assert_eq!(parsed.extra.get("rank"), Some(&json!(42)));
+
+        let reserialized = serde_json::to_string(&parsed).unwrap();
+        let reparsed: serde_json::Value = serde_json::from_str(&reserialized).unwrap();
+        assert_eq!(reparsed["custom_flag"], json!(true));
+        assert_eq!(reparsed["rank"], json!(42));
+    }
+
+    #[test]
+    fn test_profile_metadata_builder() {
+        let meta = ProfileMetadata::default()
+            .with_name("Test")
+            .with_about("Bio")
+            .with_picture("https://pic.url")
+            .with_banner("https://banner.url")
+            .with_website("https://web.url")
+            .with_nip05("user@example.com")
+            .with_lud16("user@getalby.com");
+        assert_eq!(meta.name.as_deref(), Some("Test"));
+        assert_eq!(meta.about.as_deref(), Some("Bio"));
+        assert_eq!(meta.picture.as_deref(), Some("https://pic.url"));
+        assert_eq!(meta.banner.as_deref(), Some("https://banner.url"));
+        assert_eq!(meta.website.as_deref(), Some("https://web.url"));
+        assert_eq!(meta.nip05.as_deref(), Some("user@example.com"));
+        assert_eq!(meta.lud16.as_deref(), Some("user@getalby.com"));
     }
 }
