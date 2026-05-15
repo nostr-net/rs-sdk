@@ -62,7 +62,7 @@ pub use core::error::{Error, Result};
 pub use core::types::{
     CapabilityExclusion, ClientSession, EncryptionMode, GiftWrapMode, JsonRpcError,
     JsonRpcErrorResponse, JsonRpcMessage, JsonRpcNotification, JsonRpcRequest, JsonRpcResponse,
-    ServerInfo,
+    ProfileMetadata, ServerInfo,
 };
 
 // ── Discovery ────────────────────────────────────────────────────────
