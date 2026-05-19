@@ -769,9 +769,7 @@ impl NostrServerTransport {
             self.task_handles.push(handle);
         }
         // Unconditional: publish profile metadata and relay list (guards inside methods)
-        let handle = self
-            .announcement_manager
-            .spawn_publish_discoverability();
+        let handle = self.announcement_manager.spawn_publish_discoverability();
         self.task_handles.push(handle);
     }
 

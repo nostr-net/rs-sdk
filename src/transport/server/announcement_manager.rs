@@ -61,7 +61,8 @@ pub(crate) struct AnnouncementManager {
     /// Explicit relay URLs to advertise in the kind 10002 relay list event.
     relay_list_urls: Option<Vec<String>>,
     /// Additional bootstrap relay URLs for discoverability publication.
-    #[allow(dead_code)] // Used by get_discoverability_publish_relay_urls; reserved for relay-specific publish
+    #[allow(dead_code)]
+    // Used by get_discoverability_publish_relay_urls; reserved for relay-specific publish
     bootstrap_relay_urls: Option<Vec<String>>,
     /// Whether to publish a relay list event (kind 10002).
     should_publish_relay_list: bool,
@@ -446,8 +447,7 @@ impl AnnouncementManager {
             .iter()
             .map(|url| Tag::custom(TagKind::Custom(tags::RELAY.into()), vec![url.clone()]))
             .collect();
-        let builder =
-            EventBuilder::new(Kind::Custom(RELAY_LIST_METADATA_KIND), "").tags(tags);
+        let builder = EventBuilder::new(Kind::Custom(RELAY_LIST_METADATA_KIND), "").tags(tags);
         match self.relay_pool.publish(builder).await {
             Ok(id) => tracing::info!(
                 target: LOG_TARGET,
@@ -512,13 +512,9 @@ impl AnnouncementManager {
             } else {
                 let tags: Vec<Tag> = urls
                     .iter()
-                    .map(|url| {
-                        Tag::custom(TagKind::Custom(tags::RELAY.into()), vec![url.clone()])
-                    })
+                    .map(|url| Tag::custom(TagKind::Custom(tags::RELAY.into()), vec![url.clone()]))
                     .collect();
-                Some(
-                    EventBuilder::new(Kind::Custom(RELAY_LIST_METADATA_KIND), "").tags(tags),
-                )
+                Some(EventBuilder::new(Kind::Custom(RELAY_LIST_METADATA_KIND), "").tags(tags))
             }
         } else {
             None
@@ -1427,10 +1423,7 @@ mod tests {
             None,
         );
         let urls = mgr.get_discoverability_publish_relay_urls();
-        let damus_count = urls
-            .iter()
-            .filter(|u| *u == "wss://relay.damus.io")
-            .count();
+        let damus_count = urls.iter().filter(|u| *u == "wss://relay.damus.io").count();
         assert_eq!(damus_count, 1, "should be deduplicated");
     }
 
@@ -1502,13 +1495,7 @@ mod tests {
 
     #[tokio::test]
     async fn publish_relay_list_empty_urls_no_publish() {
-        let (mgr, pool) = make_manager_with_discoverability(
-            Vec::new(),
-            None,
-            None,
-            true,
-            None,
-        );
+        let (mgr, pool) = make_manager_with_discoverability(Vec::new(), None, None, true, None);
         mgr.publish_relay_list().await.unwrap();
         assert!(
             pool.stored_events().await.is_empty(),
@@ -1521,13 +1508,8 @@ mod tests {
         let metadata = ProfileMetadata::default()
             .with_name("Test Server")
             .with_about("A test MCP server");
-        let (mgr, pool) = make_manager_with_discoverability(
-            Vec::new(),
-            None,
-            None,
-            true,
-            Some(metadata),
-        );
+        let (mgr, pool) =
+            make_manager_with_discoverability(Vec::new(), None, None, true, Some(metadata));
         mgr.publish_profile_metadata().await.unwrap();
         let events = pool.stored_events().await;
         assert_eq!(events.len(), 1);
@@ -1540,13 +1522,7 @@ mod tests {
 
     #[tokio::test]
     async fn publish_profile_metadata_noop_when_unconfigured() {
-        let (mgr, pool) = make_manager_with_discoverability(
-            Vec::new(),
-            None,
-            None,
-            true,
-            None,
-        );
+        let (mgr, pool) = make_manager_with_discoverability(Vec::new(), None, None, true, None);
         mgr.publish_profile_metadata().await.unwrap();
         assert!(
             pool.stored_events().await.is_empty(),
