@@ -61,8 +61,6 @@ pub(crate) struct AnnouncementManager {
     /// Explicit relay URLs to advertise in the kind 10002 relay list event.
     relay_list_urls: Option<Vec<String>>,
     /// Additional bootstrap relay URLs for discoverability publication.
-    #[allow(dead_code)]
-    // Used by get_discoverability_publish_relay_urls; reserved for relay-specific publish
     bootstrap_relay_urls: Option<Vec<String>>,
     /// Whether to publish a relay list event (kind 10002).
     should_publish_relay_list: bool,
@@ -75,7 +73,6 @@ pub(crate) struct AnnouncementManager {
 /// Used for smart bootstrap relay detection: default bootstrap relays are
 /// skipped when all advertised relays are local and no explicit bootstrap
 /// URLs were provided.
-#[allow(dead_code)] // Used by get_discoverability_publish_relay_urls
 fn is_local_relay_url(url: &str) -> bool {
     let without_proto = url
         .strip_prefix("wss://")
@@ -393,7 +390,6 @@ impl AnnouncementManager {
     /// Merges advertised relay URLs with bootstrap relay URLs, deduplicated.
     /// Skips default bootstrap relays when all advertised URLs are local and
     /// no explicit `bootstrap_relay_urls` were provided.
-    #[allow(dead_code)] // Reserved for relay-specific publish when RelayPoolTrait supports it
     pub(crate) fn get_discoverability_publish_relay_urls(&self) -> Vec<String> {
         let advertised = self.get_advertised_relay_urls();
         let has_explicit_bootstrap = self.bootstrap_relay_urls.is_some();
@@ -433,7 +429,8 @@ impl AnnouncementManager {
     /// Publish relay list (kind 10002).
     ///
     /// No-op if `should_publish_relay_list` is false or no relay URLs are available.
-    #[allow(dead_code)] // API for direct use; spawn_publish_discoverability inlines the logic
+    /// Publishes to the merged advertised + bootstrap relay set.
+    #[cfg(test)]
     pub(crate) async fn publish_relay_list(&self) -> Result<()> {
         if !self.should_publish_relay_list {
             return Ok(());
@@ -448,7 +445,7 @@ impl AnnouncementManager {
             .map(|url| Tag::custom(TagKind::Custom(tags::RELAY.into()), vec![url.clone()]))
             .collect();
         let builder = EventBuilder::new(Kind::Custom(RELAY_LIST_METADATA_KIND), "").tags(tags);
-        match self.relay_pool.publish(builder).await {
+        match self.publish_to_discoverability_relays(builder).await {
             Ok(id) => tracing::info!(
                 target: LOG_TARGET,
                 event_id = %id,
@@ -466,7 +463,8 @@ impl AnnouncementManager {
     /// Publish profile metadata (kind 0).
     ///
     /// No-op if `profile_metadata` is not configured.
-    #[allow(dead_code)] // API for direct use; spawn_publish_discoverability inlines the logic
+    /// Publishes to the merged advertised + bootstrap relay set.
+    #[cfg(test)]
     pub(crate) async fn publish_profile_metadata(&self) -> Result<()> {
         let metadata = match &self.profile_metadata {
             Some(m) => m,
@@ -474,7 +472,7 @@ impl AnnouncementManager {
         };
         let content = serde_json::to_string(metadata)?;
         let builder = EventBuilder::new(Kind::Custom(0), content);
-        match self.relay_pool.publish(builder).await {
+        match self.publish_to_discoverability_relays(builder).await {
             Ok(id) => tracing::info!(
                 target: LOG_TARGET,
                 event_id = %id,
@@ -489,6 +487,21 @@ impl AnnouncementManager {
         Ok(())
     }
 
+    /// Publish an event to the discoverability relay set.
+    ///
+    /// Uses `get_discoverability_publish_relay_urls()` for targeted publication
+    /// when bootstrap relays are configured. Falls back to pool-wide publish
+    /// when the merged set is empty.
+    #[cfg(test)]
+    async fn publish_to_discoverability_relays(&self, builder: EventBuilder) -> Result<EventId> {
+        let urls = self.get_discoverability_publish_relay_urls();
+        if urls.is_empty() {
+            self.relay_pool.publish(builder).await
+        } else {
+            self.relay_pool.publish_to(&urls, builder).await
+        }
+    }
+
     /// Spawn a task to publish profile metadata and relay list.
     ///
     /// Unconditional — guards live inside the individual publish methods.
@@ -497,6 +510,7 @@ impl AnnouncementManager {
     #[cfg_attr(not(feature = "rmcp"), allow(dead_code))]
     pub(crate) fn spawn_publish_discoverability(&self) -> tokio::task::JoinHandle<()> {
         let relay_pool = Arc::clone(&self.relay_pool);
+        let target_urls = self.get_discoverability_publish_relay_urls();
 
         // Build events before spawning (borrows self) to avoid sending &self
         let profile_event = self.profile_metadata.as_ref().and_then(|metadata| {
@@ -522,7 +536,12 @@ impl AnnouncementManager {
 
         tokio::spawn(async move {
             if let Some(builder) = profile_event {
-                match relay_pool.publish(builder).await {
+                let result = if target_urls.is_empty() {
+                    relay_pool.publish(builder).await
+                } else {
+                    relay_pool.publish_to(&target_urls, builder).await
+                };
+                match result {
                     Ok(id) => tracing::info!(
                         target: LOG_TARGET,
                         event_id = %id,
@@ -536,7 +555,12 @@ impl AnnouncementManager {
                 }
             }
             if let Some(builder) = relay_list_event {
-                match relay_pool.publish(builder).await {
+                let result = if target_urls.is_empty() {
+                    relay_pool.publish(builder).await
+                } else {
+                    relay_pool.publish_to(&target_urls, builder).await
+                };
+                match result {
                     Ok(id) => tracing::info!(
                         target: LOG_TARGET,
                         event_id = %id,
