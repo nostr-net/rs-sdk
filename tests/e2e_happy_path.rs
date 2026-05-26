@@ -184,7 +184,8 @@ async fn run_e2e_scenario(mode: EncryptionMode) {
     let client_transport = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
             .with_server_pubkey(server_pubkey_hex)
-            .with_encryption_mode(mode),
+            .with_encryption_mode(mode)
+            .with_relay_urls(vec!["wss://mock.relay".to_string()]),
         as_pool(client_pool),
     )
     .await
@@ -381,7 +382,8 @@ async fn e2e_multi_client_no_crosstalk() {
     let client1_transport = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
             .with_server_pubkey(server_pubkey_hex.clone())
-            .with_encryption_mode(EncryptionMode::Optional),
+            .with_encryption_mode(EncryptionMode::Optional)
+            .with_relay_urls(vec!["wss://mock.relay".to_string()]),
         as_pool(client1_pool),
     )
     .await
@@ -390,7 +392,8 @@ async fn e2e_multi_client_no_crosstalk() {
     let client2_transport = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
             .with_server_pubkey(server_pubkey_hex)
-            .with_encryption_mode(EncryptionMode::Optional),
+            .with_encryption_mode(EncryptionMode::Optional)
+            .with_relay_urls(vec!["wss://mock.relay".to_string()]),
         as_pool(client2_pool),
     )
     .await

@@ -4,6 +4,7 @@
 //! kind 25910 events, correlates responses via `e` tag.
 
 pub mod correlation_store;
+pub mod relay_resolution;
 pub mod server_identity;
 pub mod server_relay_discovery;
 
@@ -53,17 +54,24 @@ pub struct NostrClientTransportConfig {
     /// This prevents leaks -- rmcp owns actual request timeout and cancellation.
     /// Keep this value above your rmcp request timeout to avoid premature cleanup.
     pub timeout: Duration,
+    /// Relay URLs used for CEP-17 relay-list discovery when operational relays are not configured.
+    /// Overrides `DEFAULT_BOOTSTRAP_RELAY_URLS` when provided.
+    pub discovery_relay_urls: Option<Vec<String>>,
+    /// Non-authoritative operational relays probed in parallel with CEP-17 discovery.
+    pub fallback_operational_relay_urls: Option<Vec<String>>,
 }
 
 impl Default for NostrClientTransportConfig {
     fn default() -> Self {
         Self {
-            relay_urls: vec!["wss://relay.damus.io".to_string()],
+            relay_urls: vec![],
             server_pubkey: String::new(),
             encryption_mode: EncryptionMode::Optional,
             gift_wrap_mode: GiftWrapMode::Optional,
             is_stateless: false,
             timeout: Duration::from_secs(30),
+            discovery_relay_urls: None,
+            fallback_operational_relay_urls: None,
         }
     }
 }
@@ -99,6 +107,16 @@ impl NostrClientTransportConfig {
         self.timeout = timeout;
         self
     }
+    /// Set relay URLs for CEP-17 relay-list discovery.
+    pub fn with_discovery_relay_urls(mut self, urls: Vec<String>) -> Self {
+        self.discovery_relay_urls = Some(urls);
+        self
+    }
+    /// Set fallback operational relay URLs probed in parallel with discovery.
+    pub fn with_fallback_operational_relay_urls(mut self, urls: Vec<String>) -> Self {
+        self.fallback_operational_relay_urls = Some(urls);
+        self
+    }
 }
 
 /// Client-side Nostr transport for sending MCP requests and receiving responses.
@@ -107,8 +125,11 @@ pub struct NostrClientTransport {
     config: NostrClientTransportConfig,
     server_pubkey: PublicKey,
     /// Populated from nprofile relay hints; used by relay resolution in `start()` (CEP-17).
-    #[allow(dead_code)]
     hinted_relay_urls: Vec<String>,
+    /// Discovery relay URLs for CEP-17 kind 10002 lookup.
+    discovery_relay_urls: Vec<String>,
+    /// Fallback operational relay URLs probed in parallel with discovery.
+    fallback_operational_relay_urls: Vec<String>,
     /// Pending request event IDs awaiting responses.
     pending_requests: ClientCorrelationStore,
     /// CEP-35: one-shot flag for client discovery tag emission.
@@ -170,6 +191,17 @@ impl NostrClientTransport {
             encryption_mode = ?config.encryption_mode,
             "Created client transport"
         );
+        let discovery_relay_urls = config.discovery_relay_urls.clone().unwrap_or_else(|| {
+            DEFAULT_BOOTSTRAP_RELAY_URLS
+                .iter()
+                .map(|s| s.to_string())
+                .collect()
+        });
+        let fallback_operational_relay_urls = config
+            .fallback_operational_relay_urls
+            .clone()
+            .unwrap_or_default();
+
         Ok(Self {
             base: BaseTransport {
                 relay_pool,
@@ -179,6 +211,8 @@ impl NostrClientTransport {
             config,
             server_pubkey,
             hinted_relay_urls,
+            discovery_relay_urls,
+            fallback_operational_relay_urls,
             pending_requests: ClientCorrelationStore::new(),
             has_sent_discovery_tags: AtomicBool::new(false),
             discovered_server_capabilities: Arc::new(Mutex::new(PeerCapabilities::default())),
@@ -213,6 +247,17 @@ impl NostrClientTransport {
             NonZeroUsize::new(DEFAULT_LRU_SIZE).expect("DEFAULT_LRU_SIZE must be non-zero"),
         )));
 
+        let discovery_relay_urls = config.discovery_relay_urls.clone().unwrap_or_else(|| {
+            DEFAULT_BOOTSTRAP_RELAY_URLS
+                .iter()
+                .map(|s| s.to_string())
+                .collect()
+        });
+        let fallback_operational_relay_urls = config
+            .fallback_operational_relay_urls
+            .clone()
+            .unwrap_or_default();
+
         tracing::info!(
             target: LOG_TARGET,
             relay_count = config.relay_urls.len(),
@@ -229,6 +274,8 @@ impl NostrClientTransport {
             config,
             server_pubkey,
             hinted_relay_urls,
+            discovery_relay_urls,
+            fallback_operational_relay_urls,
             pending_requests: ClientCorrelationStore::new(),
             has_sent_discovery_tags: AtomicBool::new(false),
             discovered_server_capabilities: Arc::new(Mutex::new(PeerCapabilities::default())),
@@ -244,17 +291,32 @@ impl NostrClientTransport {
 
     /// Connect and start listening for responses.
     pub async fn start(&mut self) -> Result<()> {
-        self.base
-            .connect(&self.config.relay_urls)
-            .await
-            .map_err(|error| {
-                tracing::error!(
-                    target: LOG_TARGET,
-                    error = %error,
-                    "Failed to connect client transport to relays"
-                );
-                error
-            })?;
+        let resolved_urls =
+            relay_resolution::resolve_operational_relays(relay_resolution::RelayResolutionConfig {
+                configured_relay_urls: self.config.relay_urls.clone(),
+                hinted_relay_urls: self.hinted_relay_urls.clone(),
+                discovery_relay_urls: self.discovery_relay_urls.clone(),
+                fallback_operational_relay_urls: self.fallback_operational_relay_urls.clone(),
+                server_pubkey: self.server_pubkey,
+                signer: self.base.relay_pool.signer().await?,
+                timeout: Duration::from_millis(DEFAULT_TIMEOUT_MS),
+            })
+            .await;
+
+        let connect_urls = if resolved_urls.is_empty() {
+            &self.config.relay_urls
+        } else {
+            &resolved_urls
+        };
+
+        self.base.connect(connect_urls).await.map_err(|error| {
+            tracing::error!(
+                target: LOG_TARGET,
+                error = %error,
+                "Failed to connect client transport to relays"
+            );
+            error
+        })?;
 
         let pubkey = self.base.get_public_key().await.map_err(|error| {
             tracing::error!(
@@ -863,12 +925,14 @@ mod tests {
     #[test]
     fn test_config_defaults() {
         let config = NostrClientTransportConfig::default();
-        assert_eq!(config.relay_urls, vec!["wss://relay.damus.io".to_string()]);
+        assert!(config.relay_urls.is_empty());
         assert!(config.server_pubkey.is_empty());
         assert_eq!(config.encryption_mode, EncryptionMode::Optional);
         assert_eq!(config.gift_wrap_mode, GiftWrapMode::Optional);
         assert!(!config.is_stateless);
         assert_eq!(config.timeout, Duration::from_secs(30));
+        assert!(config.discovery_relay_urls.is_none());
+        assert!(config.fallback_operational_relay_urls.is_none());
     }
 
     #[test]
@@ -1105,6 +1169,8 @@ mod tests {
             },
             server_pubkey: keys.public_key(),
             hinted_relay_urls: vec![],
+            discovery_relay_urls: vec![],
+            fallback_operational_relay_urls: vec![],
             pending_requests: ClientCorrelationStore::new(),
             has_sent_discovery_tags: AtomicBool::new(false),
             discovered_server_capabilities: Arc::new(Mutex::new(PeerCapabilities::default())),
