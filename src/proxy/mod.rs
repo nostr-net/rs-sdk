@@ -122,6 +122,8 @@ mod tests {
             gift_wrap_mode: GiftWrapMode::Optional,
             is_stateless: true,
             timeout: Duration::from_secs(60),
+            discovery_relay_urls: None,
+            fallback_operational_relay_urls: None,
         };
 
         let config = ProxyConfig { nostr_config };

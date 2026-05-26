@@ -160,6 +160,7 @@ async fn full_initialization_handshake() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         as_pool(client_pool),
@@ -293,6 +294,7 @@ async fn encryption_mode_optional_accepts_plaintext() {
     // Client uses Disabled — sends plaintext kind 25910.
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         as_pool(client_pool),
@@ -353,6 +355,7 @@ async fn auth_allowlist_blocks_disallowed_pubkey() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         as_pool(client_pool),
@@ -403,6 +406,7 @@ async fn encryption_mode_required_drops_plaintext() {
     // Client sends plaintext (Disabled mode).
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         as_pool(client_pool),
@@ -446,6 +450,7 @@ async fn encrypted_gift_wrap_roundtrip() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Required),
         as_pool(client_pool),
@@ -529,6 +534,7 @@ async fn gift_wrap_dedup_skips_duplicate_delivery() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Required),
         as_pool(client_pool),
@@ -598,6 +604,7 @@ async fn correlated_notification_has_e_tag() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         as_pool(client_pool),
@@ -692,6 +699,7 @@ async fn encryption_required_client_optional_server() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Required),
         as_pool(client_pool),
@@ -749,6 +757,7 @@ async fn encryption_optional_both_sides_encrypted_path() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Optional),
         as_pool(client_pool),
@@ -952,6 +961,7 @@ async fn broadcast_notification_reaches_initialized_client() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pk.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         as_pool(c1_pool),
@@ -1064,6 +1074,7 @@ async fn uncorrelated_notification_passes_through() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         as_pool(client_pool),
@@ -1157,6 +1168,7 @@ async fn correlated_notification_unknown_e_tag_is_dropped() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         as_pool(client_pool),
@@ -1254,6 +1266,7 @@ async fn auth_allowed_pubkey_receives_response() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         as_pool(client_pool),
@@ -1333,6 +1346,7 @@ async fn excluded_capability_bypasses_auth() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         as_pool(client_pool),
@@ -1602,6 +1616,7 @@ async fn encryption_disabled_server_rejects_gift_wrap() {
     // Client requires encryption — sends gift-wrap (kind 1059).
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Required),
         as_pool(client_pool),
@@ -1824,6 +1839,7 @@ async fn send_response_is_one_shot_under_concurrency() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         as_pool(client_pool),
@@ -1921,6 +1937,7 @@ async fn send_response_publish_failure_allows_one_successful_retry() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         as_pool(client_pool),
@@ -2046,6 +2063,7 @@ async fn announced_server_sends_unauthorized_error_response() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         as_pool(client_pool),
@@ -2121,6 +2139,7 @@ async fn private_server_silently_drops_unauthorized_request() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         as_pool(client_pool),
@@ -2182,6 +2201,7 @@ async fn announced_server_does_not_error_on_unauthorized_notification() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         as_pool(client_pool),
@@ -2239,6 +2259,7 @@ async fn first_response_includes_discovery_tags() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         as_pool(client_pool),
@@ -2361,6 +2382,7 @@ async fn notification_mirror_selection_wrt_cep_19() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Optional)
             .with_gift_wrap_mode(GiftWrapMode::Ephemeral),
@@ -2446,6 +2468,7 @@ async fn server_response_includes_encryption_tags_when_enabled() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         as_pool(client_pool),
@@ -2520,6 +2543,7 @@ async fn server_response_excludes_ephemeral_tag_when_persistent() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         as_pool(client_pool),
@@ -2591,6 +2615,7 @@ async fn server_learns_capabilities_from_client_request() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         as_pool(client_pool),
@@ -2653,6 +2678,7 @@ async fn server_disabled_encryption_omits_encryption_tags() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         as_pool(client_pool),
@@ -2722,6 +2748,7 @@ async fn client_disabled_encryption_emits_no_discovery_tags() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_keys.public_key().to_hex())
             .with_encryption_mode(EncryptionMode::Disabled)
             .with_gift_wrap_mode(GiftWrapMode::Optional),
@@ -2769,6 +2796,7 @@ async fn client_second_request_carries_no_discovery_tags() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_keys.public_key().to_hex())
             .with_encryption_mode(EncryptionMode::Disabled)
             .with_gift_wrap_mode(GiftWrapMode::Optional),
@@ -2837,6 +2865,7 @@ async fn client_learns_server_capabilities_from_first_response() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         as_pool(client_pool),
@@ -2922,6 +2951,7 @@ async fn client_or_assigns_capabilities_across_responses() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         Arc::clone(&client_pool) as Arc<dyn RelayPoolTrait>,
@@ -3034,6 +3064,7 @@ async fn client_baseline_event_not_replaced_by_later_responses() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         Arc::clone(&client_pool) as Arc<dyn RelayPoolTrait>,
@@ -3127,6 +3158,7 @@ async fn client_optional_encryption_emits_discovery_tags() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Optional)
             .with_gift_wrap_mode(GiftWrapMode::Optional),
@@ -3197,6 +3229,7 @@ async fn multi_client_concurrent_requests_both_get_responses() {
 
     let mut client_a = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         as_pool(client_a_pool),
@@ -3206,6 +3239,7 @@ async fn multi_client_concurrent_requests_both_get_responses() {
 
     let mut client_b = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         as_pool(client_b_pool),
@@ -3354,6 +3388,7 @@ async fn client_close_stops_event_loop() {
 
     let mut client = NostrClientTransport::with_relay_pool(
         NostrClientTransportConfig::default()
+            .with_relay_urls(vec!["wss://mock.relay".to_string()])
             .with_server_pubkey(server_pubkey.to_hex())
             .with_encryption_mode(EncryptionMode::Disabled),
         as_pool(client_pool),
