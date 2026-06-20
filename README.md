@@ -168,13 +168,16 @@ async fn main() -> contextvm_sdk::Result<()> {
 
 The in-repo Rust SDK guides live in [`docs/README.md`](docs/README.md):
 
-- For most users, the main pattern is: build an `rmcp` server or client, then attach [`NostrServerTransport`](src/transport/server/mod.rs:87) or [`NostrClientTransport`](src/transport/client/mod.rs:69).
+- For most users, the main pattern is: build an `rmcp` server or client, then attach [`NostrServerTransport`](src/transport/server/mod.rs:135) or [`NostrClientTransport`](src/transport/client/mod.rs:143).
 
 - [`docs/overview.md`](docs/overview.md)
 - [`docs/server-transport.md`](docs/server-transport.md)
 - [`docs/client-transport.md`](docs/client-transport.md)
 - [`docs/discovery.md`](docs/discovery.md)
 - [`docs/encryption.md`](docs/encryption.md)
+- [`docs/transport-modes.md`](docs/transport-modes.md)
+- [`docs/stateless.md`](docs/stateless.md)
+- [`docs/oversized-transfer.md`](docs/oversized-transfer.md)
 - [`docs/rmcp.md`](docs/rmcp.md)
 - [`docs/transports.md`](docs/transports.md)
 - [`docs/gateway.md`](docs/gateway.md)
@@ -218,6 +221,7 @@ model and tuning.
 |--------------------------|-----------------------|------------------------------------------|
 | `relay_urls`             | `["wss://relay.damus.io"]` | Nostr relays to connect to          |
 | `encryption_mode`        | `Optional`            | Encryption policy                        |
+| `gift_wrap_mode`         | `Optional`            | Gift-wrap policy (CEP-19): persistent (1059) vs ephemeral (21059) |
 | `server_info`            | `None`                | Server metadata for announcements        |
 | `is_announced_server`    | `false`               | Auto-publish announcements on start (CEP-6) |
 | `allowed_public_keys`    | `[]` (allow all)      | Client pubkey allowlist (hex)            |
@@ -236,6 +240,7 @@ model and tuning.
 | `relay_urls`                       | `[]`                       | Nostr relays to connect to (empty = use relay resolution) |
 | `server_pubkey`                    | (required)                 | Target server's public key (hex, npub, or nprofile) |
 | `encryption_mode`                  | `Optional`                 | Encryption policy                    |
+| `gift_wrap_mode`                   | `Optional`                 | Gift-wrap policy (CEP-19): persistent (1059) vs ephemeral (21059) |
 | `is_stateless`                     | `false`                    | Emulate initialize locally           |
 | `timeout`                          | `30s`                      | Response timeout                     |
 | `discovery_relay_urls`             | `None` (bootstrap relays)  | Relays for CEP-17 kind 10002 discovery |

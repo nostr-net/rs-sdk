@@ -175,4 +175,5 @@ Use the gateway guide when you already have a request loop or existing local MCP
 - `rmcp` accepts pre-init ping and enters the main loop immediately after initialization completes.
 - ContextVM response routing depends on request event ids.
 - Encryption mirroring and announcement behavior are covered by the integration tests.
-- When `is_announced_server` is `true`, the transport auto-publishes all announcement events on `start()` via synthetic MCP requests: kind 11316 (server announcement), kinds 11317-11320 (tools, resources, templates, prompts), kind 10002 (relay list), and kind 0 (profile metadata if configured).
+- Announcement publishing is started by the rmcp worker just after `start()` (not by `transport.start()` itself, because it injects synthetic MCP requests that need an rmcp handler to answer). When `is_announced_server` is `true`, the transport publishes the gated announcement events via those synthetic requests: kind 11316 (server announcement) and kinds 11317-11320 (tools, resources, templates, prompts).
+- Independently of `is_announced_server`, it also publishes kind 10002 (relay list, when `publish_relay_list` is true (the default) and the advertised relay URLs are non-empty) and kind 0 (profile metadata, when `profile_metadata` is configured).

@@ -99,15 +99,14 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let result = client
-        .call_tool(CallToolRequestParams {
-            name: "echo".into(),
-            arguments: serde_json::from_value(serde_json::json!({
-                "message": "hello from native contextvm client"
-            }))
-            .ok(),
-            meta: None,
-            task: None,
-        })
+        .call_tool(
+            CallToolRequestParams::new("echo").with_arguments(
+                serde_json::from_value(serde_json::json!({
+                    "message": "hello from native contextvm client"
+                }))
+                .unwrap(),
+            ),
+        )
         .await?;
 
     println!("Echo result: {}", first_text(&result));
@@ -168,4 +167,4 @@ Use the proxy guide when you want a simpler message-oriented bridge and do not w
 - The initialize request is sent automatically as part of the running client startup sequence.
 - Stateless initialization behavior is covered by the conformance tests.
 - Capability learning and gift-wrap handling happen inside the client transport implementation.
-- When `relay_urls` is empty, `start()` runs 6-stage relay resolution before connecting: configured relays > nprofile hints > CEP-17 kind 10002 discovery > fallback probing > bootstrap defaults. Callers can set `server_pubkey` to an nprofile and omit `relay_urls` entirely.
+- When `relay_urls` is empty, `start()` runs 6-stage relay resolution before connecting: configured relays > nprofile hints > CEP-17 kind 10002 discovery > fallback probing > sequential fallback > bootstrap defaults. Callers can set `server_pubkey` to an nprofile and omit `relay_urls` entirely.

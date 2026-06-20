@@ -52,6 +52,9 @@ ContextVM keeps MCP semantics intact and uses Nostr only as the transport envelo
 - direct plaintext ContextVM traffic uses kind `25910`
 - encrypted traffic uses gift-wrap kinds `1059` or `21059`
 - public discovery uses kinds `11316` through `11320`
+- server relay lists are published as NIP-65 kind `10002` events (CEP-17)
+- optional server profile metadata is published as a NIP-01 kind `0` event (CEP-23)
+- oversized MCP messages that exceed the single-event size limit are fragmented across `notifications/progress` frames and transparently reassembled (CEP-22)
 - routing is done with `p` tags and request/response correlation with `e` tags, as reflected in the repository root README
 
 ## Core types you should know
@@ -59,6 +62,7 @@ ContextVM keeps MCP semantics intact and uses Nostr only as the transport envelo
 - `EncryptionMode`: `Optional`, `Required`, `Disabled`
 - `GiftWrapMode`: `Optional`, `Ephemeral`, `Persistent`
 - `contextvm_sdk::ServerInfo`: announcement metadata
+- `contextvm_sdk::ProfileMetadata`: optional NIP-01 kind `0` profile metadata for a human-friendly server identity (CEP-23)
 - `CapabilityExclusion`: allowlist bypass rules for specific methods or capabilities
 
 ## Typical workflows
