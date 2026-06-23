@@ -240,6 +240,97 @@ fn parse_json_rpc(json: &str) -> Result<contextvm_sdk::JsonRpcMessage, FfiError>
     })
 }
 
+type IncomingRx =
+    Arc<tokio::sync::Mutex<tokio::sync::mpsc::UnboundedReceiver<contextvm_sdk::IncomingRequest>>>;
+type MessageRx =
+    Arc<tokio::sync::Mutex<tokio::sync::mpsc::UnboundedReceiver<contextvm_sdk::JsonRpcMessage>>>;
+
+fn channel_closed() -> FfiError {
+    FfiError {
+        code: crate::error::ErrorCode::Transport,
+        message: "channel closed".into(),
+    }
+}
+
+fn recv_timeout_error() -> FfiError {
+    FfiError {
+        code: crate::error::ErrorCode::Timeout,
+        message: "receive timed out".into(),
+    }
+}
+
+fn recv_incoming(rx: IncomingRx) -> Result<IncomingRequest, FfiError> {
+    global_runtime()
+        .block_on(async {
+            let mut guard = rx.lock().await;
+            guard.recv().await
+        })
+        .map(|req| incoming_to_uniffi(&req))
+        .ok_or_else(channel_closed)
+}
+
+fn recv_incoming_timeout(rx: IncomingRx, timeout_secs: u64) -> Result<IncomingRequest, FfiError> {
+    match global_runtime().block_on(async {
+        tokio::time::timeout(Duration::from_secs(timeout_secs), async {
+            let mut guard = rx.lock().await;
+            guard.recv().await
+        })
+        .await
+    }) {
+        Ok(Some(req)) => Ok(incoming_to_uniffi(&req)),
+        Ok(None) => Err(channel_closed()),
+        Err(_) => Err(recv_timeout_error()),
+    }
+}
+
+fn recv_incoming_try(rx: IncomingRx) -> Result<Option<IncomingRequest>, FfiError> {
+    let mut guard = match rx.try_lock() {
+        Ok(guard) => guard,
+        Err(_) => return Ok(None),
+    };
+    match guard.try_recv() {
+        Ok(req) => Ok(Some(incoming_to_uniffi(&req))),
+        Err(tokio::sync::mpsc::error::TryRecvError::Empty) => Ok(None),
+        Err(tokio::sync::mpsc::error::TryRecvError::Disconnected) => Err(channel_closed()),
+    }
+}
+
+fn recv_message(rx: MessageRx) -> Result<JsonRpcMessage, FfiError> {
+    global_runtime()
+        .block_on(async {
+            let mut guard = rx.lock().await;
+            guard.recv().await
+        })
+        .map(|msg| message_to_uniffi(&msg))
+        .ok_or_else(channel_closed)
+}
+
+fn recv_message_timeout(rx: MessageRx, timeout_secs: u64) -> Result<JsonRpcMessage, FfiError> {
+    match global_runtime().block_on(async {
+        tokio::time::timeout(Duration::from_secs(timeout_secs), async {
+            let mut guard = rx.lock().await;
+            guard.recv().await
+        })
+        .await
+    }) {
+        Ok(Some(msg)) => Ok(message_to_uniffi(&msg)),
+        Ok(None) => Err(channel_closed()),
+        Err(_) => Err(recv_timeout_error()),
+    }
+}
+
+fn recv_message_try(rx: MessageRx) -> Result<Option<JsonRpcMessage>, FfiError> {
+    let mut guard = match rx.try_lock() {
+        Ok(guard) => guard,
+        Err(_) => return Ok(None),
+    };
+    match guard.try_recv() {
+        Ok(msg) => Ok(Some(message_to_uniffi(&msg))),
+        Err(tokio::sync::mpsc::error::TryRecvError::Empty) => Ok(None),
+        Err(tokio::sync::mpsc::error::TryRecvError::Disconnected) => Err(channel_closed()),
+    }
+}
+
 fn tool_to_uniffi(tool: crate::discovery::DiscoveredToolRecord) -> DiscoveredTool {
     DiscoveredTool {
         provider_pubkey: tool.provider_pubkey,
@@ -430,17 +521,17 @@ impl Server {
 
     /// Receive the next incoming request.  Blocks until one is available.
     pub fn recv(&self) -> Result<IncomingRequest, FfiError> {
-        let rx = self.receiver.clone();
-        global_runtime()
-            .block_on(async {
-                let mut guard = rx.lock().await;
-                guard.recv().await
-            })
-            .map(|req| incoming_to_uniffi(&req))
-            .ok_or_else(|| FfiError {
-                code: crate::error::ErrorCode::Transport,
-                message: "channel closed".into(),
-            })
+        recv_incoming(self.receiver.clone())
+    }
+
+    /// Receive the next incoming request, timing out after `timeout_secs`.
+    pub fn recv_timeout(&self, timeout_secs: u64) -> Result<IncomingRequest, FfiError> {
+        recv_incoming_timeout(self.receiver.clone(), timeout_secs)
+    }
+
+    /// Return the next incoming request if one is already buffered.
+    pub fn recv_try(&self) -> Result<Option<IncomingRequest>, FfiError> {
+        recv_incoming_try(self.receiver.clone())
     }
 
     /// Send a response for a given event ID.
@@ -663,17 +754,17 @@ impl Client {
 
     /// Receive the next response.  Blocks until one is available.
     pub fn recv(&self) -> Result<JsonRpcMessage, FfiError> {
-        let rx = self.receiver.clone();
-        global_runtime()
-            .block_on(async {
-                let mut guard = rx.lock().await;
-                guard.recv().await
-            })
-            .map(|msg| message_to_uniffi(&msg))
-            .ok_or_else(|| FfiError {
-                code: crate::error::ErrorCode::Transport,
-                message: "channel closed".into(),
-            })
+        recv_message(self.receiver.clone())
+    }
+
+    /// Receive the next response, timing out after `timeout_secs`.
+    pub fn recv_timeout(&self, timeout_secs: u64) -> Result<JsonRpcMessage, FfiError> {
+        recv_message_timeout(self.receiver.clone(), timeout_secs)
+    }
+
+    /// Return the next response if one is already buffered.
+    pub fn recv_try(&self) -> Result<Option<JsonRpcMessage>, FfiError> {
+        recv_message_try(self.receiver.clone())
     }
 
     /// Return a snapshot of server capabilities learned from discovery tags.
@@ -786,17 +877,17 @@ impl Gateway {
 
     /// Receive the next incoming request.
     pub fn recv(&self) -> Result<IncomingRequest, FfiError> {
-        let rx = self.receiver.clone();
-        global_runtime()
-            .block_on(async {
-                let mut guard = rx.lock().await;
-                guard.recv().await
-            })
-            .map(|req| incoming_to_uniffi(&req))
-            .ok_or_else(|| FfiError {
-                code: crate::error::ErrorCode::Transport,
-                message: "channel closed".into(),
-            })
+        recv_incoming(self.receiver.clone())
+    }
+
+    /// Receive the next incoming request, timing out after `timeout_secs`.
+    pub fn recv_timeout(&self, timeout_secs: u64) -> Result<IncomingRequest, FfiError> {
+        recv_incoming_timeout(self.receiver.clone(), timeout_secs)
+    }
+
+    /// Return the next incoming request if one is already buffered.
+    pub fn recv_try(&self) -> Result<Option<IncomingRequest>, FfiError> {
+        recv_incoming_try(self.receiver.clone())
     }
 
     /// Send a response for a given event ID.
@@ -910,36 +1001,17 @@ impl Proxy {
 
     /// Receive the next response or notification.
     pub fn recv(&self) -> Result<JsonRpcMessage, FfiError> {
-        let rx = self.receiver.clone();
-        global_runtime()
-            .block_on(async {
-                let mut guard = rx.lock().await;
-                guard.recv().await
-            })
-            .map(|msg| message_to_uniffi(&msg))
-            .ok_or_else(|| FfiError {
-                code: crate::error::ErrorCode::Transport,
-                message: "channel closed".into(),
-            })
+        recv_message(self.receiver.clone())
     }
 
     /// Receive the next response or notification, timing out after `timeout_secs`.
     pub fn recv_timeout(&self, timeout_secs: u64) -> Result<JsonRpcMessage, FfiError> {
-        let rx = self.receiver.clone();
-        match global_runtime().block_on(async {
-            let mut guard = rx.lock().await;
-            tokio::time::timeout(Duration::from_secs(timeout_secs), guard.recv()).await
-        }) {
-            Ok(Some(msg)) => Ok(message_to_uniffi(&msg)),
-            Ok(None) => Err(FfiError {
-                code: crate::error::ErrorCode::Transport,
-                message: "channel closed".into(),
-            }),
-            Err(_) => Err(FfiError {
-                code: crate::error::ErrorCode::Timeout,
-                message: "receive timed out".into(),
-            }),
-        }
+        recv_message_timeout(self.receiver.clone(), timeout_secs)
+    }
+
+    /// Return the next response or notification if one is already buffered.
+    pub fn recv_try(&self) -> Result<Option<JsonRpcMessage>, FfiError> {
+        recv_message_try(self.receiver.clone())
     }
 
     /// Check if the proxy is active.
@@ -1108,4 +1180,58 @@ pub fn make_response(id: String, result: String) -> String {
         result: serde_json::from_str(&result).unwrap_or(serde_json::json!(null)),
     });
     serde_json::to_string(&msg).unwrap_or_default()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn request() -> contextvm_sdk::JsonRpcMessage {
+        contextvm_sdk::JsonRpcMessage::Request(contextvm_sdk::JsonRpcRequest {
+            jsonrpc: "2.0".to_string(),
+            id: serde_json::json!("1"),
+            method: "ping".to_string(),
+            params: None,
+        })
+    }
+
+    #[test]
+    fn recv_message_try_returns_none_then_buffered_message() {
+        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+        let rx = Arc::new(tokio::sync::Mutex::new(rx));
+
+        assert!(recv_message_try(rx.clone()).unwrap().is_none());
+        tx.send(request()).unwrap();
+
+        let msg = recv_message_try(rx).unwrap().unwrap();
+        assert_eq!(msg.method, "ping");
+    }
+
+    #[test]
+    fn recv_message_timeout_reports_timeout() {
+        let (_tx, rx) = tokio::sync::mpsc::unbounded_channel();
+        let err = recv_message_timeout(Arc::new(tokio::sync::Mutex::new(rx)), 0).unwrap_err();
+
+        assert_eq!(err.code, crate::error::ErrorCode::Timeout);
+    }
+
+    #[test]
+    fn recv_message_timeout_includes_lock_wait() {
+        let (_tx, rx) = tokio::sync::mpsc::unbounded_channel();
+        let rx = Arc::new(tokio::sync::Mutex::new(rx));
+        let _guard = global_runtime().block_on(rx.lock());
+
+        let err = recv_message_timeout(rx.clone(), 0).unwrap_err();
+
+        assert_eq!(err.code, crate::error::ErrorCode::Timeout);
+    }
+
+    #[test]
+    fn recv_message_try_does_not_wait_for_lock() {
+        let (_tx, rx) = tokio::sync::mpsc::unbounded_channel();
+        let rx = Arc::new(tokio::sync::Mutex::new(rx));
+        let _guard = global_runtime().block_on(rx.lock());
+
+        assert!(recv_message_try(rx.clone()).unwrap().is_none());
+    }
 }
