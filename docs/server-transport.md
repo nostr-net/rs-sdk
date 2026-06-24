@@ -38,7 +38,7 @@ use contextvm_sdk::transport::server::{
 use contextvm_sdk::{signer, EncryptionMode, GiftWrapMode, ServerInfo};
 use rmcp::{
     ServerHandler, ServiceExt,
-    handler::server::{router::tool::ToolRouter, wrapper::Parameters},
+    handler::server::wrapper::Parameters,
     model::*,
     schemars, tool, tool_handler, tool_router,
 };
@@ -46,15 +46,11 @@ use rmcp::{
 const RELAY_URL: &str = "wss://relay.contextvm.org";
 
 #[derive(Clone)]
-struct DemoServer {
-    tool_router: ToolRouter<Self>,
-}
+struct DemoServer {}
 
 impl DemoServer {
     fn new() -> Self {
-        Self {
-            tool_router: Self::tool_router(),
-        }
+        Self {}
     }
 }
 
