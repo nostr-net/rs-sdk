@@ -154,11 +154,15 @@ impl StreamServer {
         if let Some(writer) = writer_of(&ctx) {
             let _ = writer.start().await;
             let _ = writer.write(format!("{topic}:1")).await;
-            for _ in 0..1000 {
+            // Wait for the inbound client `abort` to deactivate the writer. The
+            // bound must stay comfortably below the test's 5 s result timeout so
+            // a genuine abort-delivery bug fails fast instead of masking itself
+            // as a result timeout under CI load. 300 × 5 ms = 1.5 s worst case.
+            for _ in 0..300 {
                 if !writer.is_active() {
                     break;
                 }
-                tokio::time::sleep(Duration::from_millis(10)).await;
+                tokio::time::sleep(Duration::from_millis(5)).await;
             }
         }
         Ok(CallToolResult::success(vec![Content::text(format!(
@@ -501,7 +505,10 @@ async fn open_stream_client_abort_propagates() {
     // `open_stream/registry.rs::consumer_abort_frees_slot_and_runs_hook`.)
 
     // The server tool observed the abort (its writer went inactive) and returned.
-    let result = tokio::time::timeout(Duration::from_secs(5), &mut call.result)
+    // 10 s (vs the tool's 1.5 s loop bound) absorbs CI scheduling jitter on the
+    // multi-hop client→relay→server→relay→client abort+response round trip
+    // without masking a genuine abort-delivery regression.
+    let result = tokio::time::timeout(Duration::from_secs(10), &mut call.result)
         .await
         .expect("result timed out")
         .expect("tool call failed");
