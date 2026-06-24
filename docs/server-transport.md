@@ -156,12 +156,25 @@ Start with these fields in `NostrServerTransportConfig`:
 - `is_announced_server`: whether the server should participate in public discovery
 - `encryption_mode`: plaintext vs encrypted policy
 - `gift_wrap_mode`: persistent vs ephemeral wrapping policy
+- `open_stream`: CEP-41 open-stream settings; disabled by default, opt in with `with_open_stream(OpenStreamConfig::enabled())`
 - `allowed_public_keys`: allowlist for private or restricted servers
 - `excluded_capabilities`: allow specific methods without fully opening the server
 - `relay_list_urls`: relay URLs advertised in kind 10002 (CEP-17); defaults to `relay_urls`
 - `bootstrap_relay_urls`: additional relays for publishing announcements (CEP-6/17); merged with `relay_list_urls`
 - `publish_relay_list`: whether to publish kind 10002 relay list metadata; default `true`
 - `profile_metadata`: optional profile metadata for kind 0 publication (CEP-23)
+
+## Streaming responses with open-stream (CEP-41)
+
+When open-stream is enabled and a `tools/call` request carries a `progressToken`,
+the transport injects an `OpenStreamWriter` into the request extensions before
+dispatch. Tool handlers retrieve it with
+`ctx.extensions.get::<OpenStreamWriter>()` (imported from
+`contextvm_sdk::transport::open_stream`), write chunks with `writer.write(..)`,
+and finish with `writer.close()`. The final `CallToolResult` is returned normally
+after the stream closes. Open-stream is disabled by default; enable it with
+`with_open_stream(OpenStreamConfig::enabled())`. See
+[open-stream.md](open-stream.md) for a full example.
 
 ## When to use this instead of the gateway
 

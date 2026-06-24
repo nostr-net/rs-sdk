@@ -173,6 +173,7 @@ The in-repo Rust SDK guides live in [`docs/README.md`](docs/README.md):
 - [`docs/overview.md`](docs/overview.md)
 - [`docs/server-transport.md`](docs/server-transport.md)
 - [`docs/client-transport.md`](docs/client-transport.md)
+- [`docs/open-stream.md`](docs/open-stream.md)
 - [`docs/discovery.md`](docs/discovery.md)
 - [`docs/encryption.md`](docs/encryption.md)
 - [`docs/transport-modes.md`](docs/transport-modes.md)
@@ -215,6 +216,14 @@ it adds no event kind — frames ride inside `notifications/progress` messages).
 See [docs/oversized-transfer.md](docs/oversized-transfer.md) for the timeout
 model and tuning.
 
+Open-ended streaming (CEP-41) lets a server tool emit an ordered sequence of
+chunks back to the client while a request is in flight. The client consumes them
+as an async `Stream` via `call_tool_stream`. Unlike CEP-22, the stream supplements
+the final JSON-RPC response rather than replacing it. Disabled by default; opt in
+with `with_open_stream(OpenStreamConfig::enabled())`. See
+[docs/open-stream.md](docs/open-stream.md) for the writer and client APIs and the
+keepalive timer model.
+
 ### Server Transport Config
 
 | Field                    | Default               | Description                              |
@@ -232,6 +241,7 @@ model and tuning.
 | `publish_relay_list`     | `true`                | Whether to publish kind 10002 relay list metadata |
 | `profile_metadata`       | `None`                | Profile metadata for kind 0 publication (CEP-23) |
 | `oversized_transfer`     | enabled               | CEP-22 oversized payload transfer config ([guide](docs/oversized-transfer.md)) |
+| `open_stream`            | disabled              | CEP-41 open-stream config; opt-in ([guide](docs/open-stream.md)) |
 
 ### Client Transport Config
 
@@ -246,6 +256,7 @@ model and tuning.
 | `discovery_relay_urls`             | `None` (bootstrap relays)  | Relays for CEP-17 kind 10002 discovery |
 | `fallback_operational_relay_urls`  | `None`                     | Relays probed in parallel with CEP-17 discovery |
 | `oversized_transfer`               | enabled                    | CEP-22 oversized payload transfer config ([guide](docs/oversized-transfer.md)) |
+| `open_stream`                      | disabled                   | CEP-41 open-stream config; opt-in ([guide](docs/open-stream.md)) |
 
 When `relay_urls` is empty, `start()` runs automatic relay resolution: configured relays > nprofile hints > CEP-17 kind 10002 discovery > fallback probing > bootstrap defaults.
 

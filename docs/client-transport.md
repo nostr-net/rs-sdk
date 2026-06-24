@@ -150,10 +150,22 @@ Start with these fields in `NostrClientTransportConfig`:
 - `server_pubkey`: the target server's public key (hex, npub, or nprofile with relay hints)
 - `encryption_mode`: whether plaintext is allowed
 - `gift_wrap_mode`: whether to use persistent or ephemeral wrapping
+- `open_stream`: CEP-41 open-stream settings; disabled by default, opt in with `with_open_stream(OpenStreamConfig::enabled())`
 - `is_stateless`: whether initialize is emulated locally for stateless workflows
 - `timeout`: how long request correlation waits for a response
 - `discovery_relay_urls`: bootstrap relays for CEP-17 kind 10002 relay-list discovery (defaults to `DEFAULT_BOOTSTRAP_RELAY_URLS`)
 - `fallback_operational_relay_urls`: non-authoritative relays probed in parallel with CEP-17 discovery
+
+## Open-ended streaming (CEP-41)
+
+For tools that stream output while a call is in flight, use `call_tool_stream`
+with a `ClientOpenStreamHandle`. Capture the handle from the transport with
+`transport.open_stream_handle()` before `serve()` consumes the transport, then
+call `call_tool_stream(peer, &handle, params)` to receive a `ToolStreamCall`
+whose `stream` yields chunks and whose `result` resolves to the final
+`CallToolResult`. Open-stream is disabled by default; enable it with
+`with_open_stream(OpenStreamConfig::enabled())`. See
+[open-stream.md](open-stream.md).
 
 ## When to use this instead of the proxy
 
