@@ -1,7 +1,7 @@
 # contextvm-sdk
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org)
+[![Rust](https://img.shields.io/badge/rust-1.88%2B-orange.svg)](https://www.rust-lang.org)
 
 Rust SDK for the [ContextVM protocol](https://contextvm.org) — **MCP over Nostr**.
 
@@ -58,11 +58,11 @@ Add to your `Cargo.toml`:
 contextvm-sdk = { git = "https://github.com/ContextVM/rs-sdk" }
 ```
 
-Or clone and use as a path dependency:
+Or pin a published release from crates.io:
 
 ```toml
 [dependencies]
-contextvm-sdk = { path = "../rust-contextvm-sdk" }
+contextvm-sdk = "0.2.0"
 ```
 
 ## Quick Start
@@ -168,7 +168,7 @@ async fn main() -> contextvm_sdk::Result<()> {
 
 The in-repo Rust SDK guides live in [`docs/README.md`](docs/README.md):
 
-- For most users, the main pattern is: build an `rmcp` server or client, then attach [`NostrServerTransport`](src/transport/server/mod.rs:135) or [`NostrClientTransport`](src/transport/client/mod.rs:143).
+- For most users, the main pattern is: build an `rmcp` server or client, then attach [`NostrServerTransport`](src/transport/server/mod.rs) or [`NostrClientTransport`](src/transport/client/mod.rs).
 
 - [`docs/overview.md`](docs/overview.md)
 - [`docs/server-transport.md`](docs/server-transport.md)
