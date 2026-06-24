@@ -9,6 +9,11 @@
 - CEP-17: multi-stage relay resolution with server identity parsing, relay list (NIP-65) fetching, and `fetch_events`, plus transport integration that resolves a server's preferred relays before connecting (#82, #83)
 - CEP-6: expanded server announcements with full `InitializeResult` parsing in `ServerAnnouncement`, auto-publishing on `start()`, relay list publishing, and a tool and resource schema mapping table (#77, #78, #79, #81)
 - CEP-23: optional server profile metadata published as a NIP-01 kind 0 event, via a new `ProfileMetadata` type, so clients see a human-friendly identity (#77, #79)
+- CEP-41: open-ended streaming - a server tool emits ordered chunks back to a
+  client while a request is in flight via `call_tool_stream`; the client
+  consumes them as an async `Stream`; the stream supplements the final
+  JSON-RPC response rather than replacing it, negotiated through the
+  `support_open_stream` capability tag (#97, #98)
 - CI: MSRV and feature-matrix checks (#75)
 - `examples/python/`: runnable Python examples using the UniFFI binding — an
   offline install sanity check, server/tool discovery (mirrors `discovery.rs`),
