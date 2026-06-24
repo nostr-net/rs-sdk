@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.2.0] - Unreleased
+## [0.2.0] - 2026-06-24
 
 ### Added
 
@@ -21,7 +21,7 @@
 
 ### Changed
 
-- Upgraded `rmcp` from 0.16.0 to 1.7.x to gain progress-aware request timeouts (#86)
+- Upgraded `rmcp` from 0.16.0 to 1.8 to gain progress-aware request timeouts (#86)
 - Raised the minimum supported Rust version (MSRV) from 1.70 to 1.88
 - Added `sha2` and `hex` dependencies for CEP-22 payload digests
 - Enabled the `missing_docs` lint, closed rustdoc coverage gaps, and added SDK documentation links and a CEP-22 oversized-transfer guide (#67, #73)
